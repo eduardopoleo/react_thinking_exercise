@@ -51,6 +51,8 @@ var ProductTable = React.createClass({
           <th>Price</th>
         </thead>
         <tbody>
+        //React is actually clever in the sense that knows that 
+        //tr and td is what actually should go inside the table body
           <CategoryRow />
           <ProductRow />
         </tbody>
@@ -62,9 +64,9 @@ var ProductTable = React.createClass({
 var CategoryRow = React.createClass({
   render: function() {
     return (
-      <div>
-       category row
-      </div>
+      <tr>
+        <td>Category name </td>
+      </tr>
     );
   }
 });
@@ -72,9 +74,10 @@ var CategoryRow = React.createClass({
 var ProductRow = React.createClass({
   render: function() {
     return (
-      <div>
-       product row
-     </div>
+      <tr>
+        <td>A product name </td>
+        <td>Product price</td>
+      </tr>
     );
   }
 });
