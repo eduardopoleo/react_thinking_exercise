@@ -10,13 +10,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 var FilterableProductTable = React.createClass({
   render: function() {
     return (
       <div className='filterable-table'>
         <SearchBar />
-        <ProductTable />
+        <ProductTable products = {this.props.products} />
       </div>
     );
   }
@@ -35,27 +34,29 @@ var SearchBar = React.createClass({
 });
 
 var ProductTable = React.createClass({
+  //I use {} only for js expressions that go into
+  // child elements and components attributes
   render: function() {
-    // var rows = [];
-    // var lastCategory = null;
-    // {this.props.products}.forEach(function(product){
-    //  if (product.category != lastCategory)
-    //   rows.push()
+    var rows = [];
+    var last_category = '';
+    this.props.products.forEach(function(product){
+      if (product.category != last_category){
+        rows.push(<CategoryRow category={product.category} />)
+      }
+      rows.push(<ProductRow name = {product.name} price = {product.price} stocked = {product.stocked} /> );
+      last_category = product.category;
+    });
 
-    // });
-
+    //how come this stuff gets parse out properly in here if it is passed as an array
+    //We can not comment inside react components, it actually gets display in the 
+    //browser
     return (
       <table>
         <thead>
           <th>Name</th>
           <th>Price</th>
         </thead>
-        <tbody>
-        //React is actually clever in the sense that knows that 
-        //tr and td is what actually should go inside the table body
-          <CategoryRow />
-          <ProductRow />
-        </tbody>
+        <tbody> {rows} </tbody>
       </table>
     );
   }
@@ -65,7 +66,7 @@ var CategoryRow = React.createClass({
   render: function() {
     return (
       <tr>
-        <td>Category name </td>
+        <td><strong>{this.props.category}</strong></td>
       </tr>
     );
   }
@@ -73,10 +74,19 @@ var CategoryRow = React.createClass({
 
 var ProductRow = React.createClass({
   render: function() {
+    if (this.props.stocked === true){
+      var nameStyle = {
+        color: 'black'
+      }
+    }else{
+      var nameStyle ={
+        color: 'red' 
+      }
+    };
     return (
       <tr>
-        <td>A product name </td>
-        <td>Product price</td>
+        <td style={nameStyle}>{this.props.name}</td>
+        <td>{this.props.price}</td>
       </tr>
     );
   }
@@ -92,4 +102,4 @@ var PRODUCTS = [
   {category: 'Electronics', price: '$199.99', stocked: true, name: 'Nexus 7'}
 ];
 
-React.render(<FilterableProductTable />, document.getElementById('content') )
+React.render(<FilterableProductTable products = {PRODUCTS} />, document.getElementById('content') )
