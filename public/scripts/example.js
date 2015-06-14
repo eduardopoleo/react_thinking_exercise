@@ -25,15 +25,53 @@ var FilterableProductTable = React.createClass({
   // the inner resources. This is what is known as one-way data flow
     // IMP: states do not come from anywhere like props! 
   // But in turn we have to set an initial state so that the thing do not crash on the first run  
+  // So far you do not get the data from a file because we are not using ajax... so that is why we need
+  // to hard coded 
   handleUserInput: function(filterText, inStockOnly){
     this.setState({
       filterText: filterText,
       inStockOnly: inStockOnly
     });
   },
+  //Ajax post boolean values as strings so we have to check the values 
+  // as "true" or "false"
+  handleProductSubmit: function(product){
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      type: 'POST',
+      data: product,
+      success: function(data){
+        this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err){
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+//
+  loadProductsFromServer: function() {
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      cache: false,
+      success: function(data) {
+        this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
+  componentDidMount: function(){
+    this.loadProductsFromServer();
+    setInterval(this.loadProductsFromServer, this.props.pollInterval);
+  },
 
   getInitialState: function(){
    return{
+     data: [],
      filterText: '',
      inStockOnly: false
    }; 
@@ -48,10 +86,11 @@ var FilterableProductTable = React.createClass({
          onUserInput={this.handleUserInput} 
         />
         <ProductTable
-         products = {this.props.products}
+         products = {this.state.data}
          filterText = {this.state.filterText}
          inStockOnly={this.state.inStockOnly}
         />
+        <ProductForm onProductSubmit={this.handleProductSubmit} />
       </div>
     );
   }
@@ -92,6 +131,42 @@ var SearchBar = React.createClass({
   }
 });
 
+var ProductForm = React.createClass({
+
+  handleSubmit: function(e){
+    e.preventDefault();
+    var category = React.findDOMNode(this.refs.category).value.trim();
+    var price = React.findDOMNode(this.refs.price).value.trim();
+    var name = React.findDOMNode(this.refs.name).value.trim();
+    var stocked = React.findDOMNode(this.refs.stocked).checked;
+
+    if (!category || !price || !name){
+      return;
+    }
+    this.props.onProductSubmit({category: category, price: price, name: name, stocked: stocked});
+
+    React.findDOMNode(this.refs.category).value = '';
+    React.findDOMNode(this.refs.price).value = '';
+    React.findDOMNode(this.refs.name).value = '';
+    return;
+  },
+
+  //When defining a form what elements go inside
+  // what are you going to do with those elements
+  //
+  render: function(){
+    return(
+      <form className="productsForm" onSubmit={this.handleSubmit}>
+        <input type='text' placeholder='product category' ref="category" />
+        <input type='text' placeholder='set price' ref="price" />
+        <input type='text' placeholder='name your product' ref="name" />
+        <input type='checkbox' ref="stocked" />
+        <input type='submit' value="Post" />
+      </form>
+    );
+  }
+});
+
 var ProductTable = React.createClass({
   //I use {} only for js expressions that go into
   // child elements and components attributes
@@ -101,17 +176,17 @@ var ProductTable = React.createClass({
     var rows = [];
     var last_category = '';
     this.props.products.forEach(function(product){
-      if (product.name.indexOf(this.props.filterText) === -1 || (this.props.inStockOnly && !product.stocked)){
-        return;
-      }
       if (product.category != last_category){
         rows.push(<CategoryRow category={product.category} />)
       }
-      rows.push(<ProductRow name = {product.name} price = {product.price} stocked = {product.stocked} /> );
+
+      if (product.name.indexOf(this.props.filterText) === -1 || (this.props.inStockOnly && !product.stocked)){
+        return;
+      }
+            rows.push(<ProductRow name = {product.name} price = {product.price} stocked = {product.stocked} /> );
       last_category = product.category;
       //What does bind do? Why does the app breaks without it?
     }.bind(this));
-    console.log(rows)
 
     //how come this stuff gets parse out properly in here if it is passed as an array
     //We can not comment inside react components, it actually gets display in the 
@@ -135,16 +210,14 @@ var ProductTable = React.createClass({
 var CategoryRow = React.createClass({
   render: function() {
     return (
-      <tr>
-        <th><strong>{this.props.category}</strong></th>
-      </tr>
+      <tr><td><strong>{this.props.category}</strong></td></tr>
     );
   }
 });
 
 var ProductRow = React.createClass({
   render: function() {
-    if (this.props.stocked){
+    if (this.props.stocked === "true"){
       var nameStyle = {
         color: 'black'
       }
@@ -162,14 +235,4 @@ var ProductRow = React.createClass({
   }
 });
 
-
-var PRODUCTS = [
-  {category: 'Sporting Goods', price: '$49.99', stocked: true, name: 'Football'},
-  {category: 'Sporting Goods', price: '$9.99', stocked: true, name: 'Baseball'},
-  {category: 'Sporting Goods', price: '$29.99', stocked: false, name: 'Basketball'},
-  {category: 'Electronics', price: '$99.99', stocked: true, name: 'iPod Touch'},
-  {category: 'Electronics', price: '$399.99', stocked: false, name: 'iPhone 5'},
-  {category: 'Electronics', price: '$199.99', stocked: true, name: 'Nexus 7'}
-];
-
-React.render(<FilterableProductTable products = {PRODUCTS} />, document.getElementById('content') )
+React.render(<FilterableProductTable url='products.json' pollInterval={2000} />, document.getElementById('content') )
